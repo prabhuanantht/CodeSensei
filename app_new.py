@@ -7,6 +7,7 @@ from datetime import datetime
 import shutil
 import zipfile
 import io
+import json
 import traceback
 import threading
 import queue
@@ -32,6 +33,15 @@ try:
 except ImportError as e:
     RAG_AVAILABLE = False
     RAG_IMPORT_ERROR = str(e)
+
+# Try to import Security Analyzer - optional feature
+try:
+    from security_analyzer import SecurityAnalyzer
+    SECURITY_AVAILABLE = True
+    SECURITY_IMPORT_ERROR = None
+except ImportError as e:
+    SECURITY_AVAILABLE = False
+    SECURITY_IMPORT_ERROR = str(e)
 
 # Page config
 st.set_page_config(
@@ -104,6 +114,26 @@ st.markdown("""
     }
     .section-header span {
         opacity: 0.9;
+    }
+    
+    /* Enhanced tab styling */
+    [data-testid="stTabs"] > div > div > div > button {
+        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 2rem !important;
+        margin: 0 0.5rem !important;
+        flex: 1 !important;
+        min-width: auto !important;
+        max-width: none !important;
+        text-align: center !important;
+        justify-content: center !important;
+    }
+    
+    [data-testid="stTabs"] > div > div > div {
+        display: flex !important;
+        justify-content: space-between !important;
+        gap: 1rem !important;
+        width: 100% !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -379,7 +409,7 @@ def render_tutorial_tab():
     if not st.session_state.tutorial_complete and not st.session_state.tutorial_running:
         st.markdown("### ⚙ Configuration")
         
-        col1, col2 = st.columns(2)
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             language = st.selectbox(
@@ -387,15 +417,14 @@ def render_tutorial_tab():
                 ["English", "Spanish", "French", "German", "Chinese", "Japanese"],
                 help="Select the language for the generated tutorial"
             )
-            
+        with col2:    
             detail_level = st.select_slider(
                 "Detail Level",
                 options=["Basic", "Intermediate", "Advanced", "Expert"],
                 value="Intermediate",
                 help="Select how detailed the tutorial should be"
             )
-        
-        with col2:
+        with col3:
             max_chapters = st.number_input(
                 "Maximum Chapters",
                 min_value=3,
@@ -403,7 +432,7 @@ def render_tutorial_tab():
                 value=8,
                 help="Maximum number of chapters to generate"
             )
-            
+        with col4:
             use_cache = st.checkbox(
                 "Enable LLM Caching",
                 value=True,
@@ -757,65 +786,268 @@ def render_intelligence_tab():
 
 def render_security_tab():
     """Render the Code Security tab"""
+    
+    # Check if security analyzer is available
+    if not SECURITY_AVAILABLE:
+        st.error("🔒 Security tab is not available")
+        st.markdown("### Installation Required")
+        st.markdown(SECURITY_IMPORT_ERROR if SECURITY_IMPORT_ERROR else "Security analyzer module not found.")
+        st.markdown("Please install the required dependencies:")
+        st.code("pip install bandit[toml]", language="bash")
+        return
+    
     st.markdown("## 🔒 Code Security Analysis")
-    st.markdown("Identify potential security vulnerabilities in your codebase.")
+    st.markdown("Identify potential security vulnerabilities in your codebase using Bandit.")
     st.markdown("---")
+    
+    # Initialize analyzer
+    analyzer = SecurityAnalyzer()
+    
+    # Check if Bandit is installed
+    if not analyzer.check_bandit_available():
+        st.warning("⚠️ Bandit is not installed")
+        st.markdown(analyzer.install_bandit_instructions())
+        return
     
     st.markdown("### Vulnerability Scan Configuration")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
-        scan_depth = st.select_slider(
-            "Scan Depth",
-            options=["Quick", "Standard", "Deep", "Exhaustive"],
-            value="Standard"
+        severity_filter = st.selectbox(
+            "Severity Level",
+            options=["LOW", "MEDIUM", "HIGH"],
+            index=1,  # Default to MEDIUM
+            help="Show vulnerabilities at or above this severity level"
         )
-        
-        severity_filter = st.multiselect(
-            "Show Severity Levels",
-            ["Critical", "High", "Medium", "Low", "Info"],
-            default=["Critical", "High", "Medium"]
+    with col2:
+        confidence_filter = st.selectbox(
+            "Confidence Level",
+            options=["LOW", "MEDIUM", "HIGH"],
+            index=1,  # Default to MEDIUM
+            help="Show vulnerabilities at or above this confidence level"
         )
     
-    with col2:
+    with col3:
         scan_categories = st.multiselect(
             "Scan Categories",
-            [
-                "SQL Injection",
-                "XSS",
-                "Authentication",
-                "Secrets",
-                "File Operations",
-                "Crypto",
-                "All"
+            options=[
+                "B101",  # assert_used
+                "B102",  # exec_used
+                "B103",  # set_bad_file_permissions
+                "B104",  # hardcoded_bind_all_interfaces
+                "B105",  # hardcoded_password_string
+                "B106",  # hardcoded_password_funcarg
+                "B107",  # hardcoded_password_default
+                "B108",  # hardcoded_tmp_directory
+                "B110",  # try_except_pass
+                "B112",  # try_except_continue
+                "B201",  # flask_debug_true
+                "B301",  # pickle
+                "B302",  # marshal
+                "B303",  # md5
+                "B304",  # cipher_without_iv
+                "B305",  # cipher_mode
+                "B306",  # mktemp
+                "B307",  # eval
+                "B308",  # mark_safe
+                "B309",  # httpsconnection_cert_verify
+                "B310",  # urllib_urlopen
+                "B311",  # random_generator
+                "B312",  # telnet
+                "B313",  # xml_bad_cElementTree
+                "B314",  # xml_bad_ElementTree
+                "B315",  # xml_bad_expatreader
+                "B316",  # xml_bad_expatbuilder
+                "B317",  # xml_bad_sax
+                "B318",  # xml_bad_minidom
+                "B319",  # xml_bad_pulldom
+                "B320",  # xml_bad_etree
+                "B321",  # ftplib
+                "B322",  # hash
+                "B323",  # unverified_context
+                "B324",  # request_with_no_cert_validation
+                "B401",  # import_telnetlib
+                "B402",  # import_ftplib
+                "B403",  # import_pickle
+                "B404",  # import_subprocess
+                "B405",  # import_xml_etree
+                "B406",  # import_xml_sax
+                "B407",  # import_xml_dom_minidom
+                "B408",  # import_xml_dom_pulldom
+                "B409",  # import_xml_expat
+                "B501",  # request_with_no_verification
+                "B502",  # flask_debug
+                "B503",  # ssl_with_bad_version
+                "B504",  # ssl_with_bad_defaults
+                "B505",  # weak_cryptographic_key
+                "B506",  # yaml_load
+                "B507",  # ssh_no_host_key_verification
+                "B508",  # snmp_insecure_version
+                "B509",  # dnspython_insecure
+                "B510",  # blacklist_calls
+                "B601",  # shell_injection_subprocess
+                "B602",  # shell_injection_win_registry
+                "B603",  # sql_injection_risk
+                "B604",  # shell_injection_tarfile
+                "B605",  # start_process_with_a_shell
+                "B606",  # start_process_with_no_shell
+                "B607",  # start_process_with_partial_path
+                "B608",  # hardcoded_sql_expressions
+                "B610",  # django_extra_used
+                "B611",  # django_rawsql_used
+                "B701",  # jinja2_autoescape_false
             ],
-            default=["All"]
+            default=[],  # Empty means scan all categories
+            help="Select specific vulnerability categories to scan (leave empty to scan all)"
         )
     
     st.markdown("---")
     
+    # Get codebase source
+    if not st.session_state.codebase_source:
+        st.warning("⚠️ Please enter a codebase source first")
+        return
+    
+    # Determine the directory to scan
+    scan_directory = None
+    if st.session_state.codebase_type == "github":
+        # Use cached directory if available
+        if st.session_state.codebase_source in st.session_state.get('cache_dirs', {}):
+            scan_directory = st.session_state.cache_dirs[st.session_state.codebase_source]
+        else:
+            # Extract project name from GitHub URL
+            project_name = st.session_state.codebase_source.split("/")[-1].replace(".git", "")
+            cache_dir = Path("./cache") / project_name
+            if cache_dir.exists():
+                scan_directory = str(cache_dir)
+    else:
+        scan_directory = st.session_state.codebase_source
+    
+    if not scan_directory or not Path(scan_directory).exists():
+        st.error(f"❌ Could not find codebase directory to scan: {scan_directory}")
+        st.info("💡 Make sure you've generated a tutorial first for GitHub repositories, or verify the local path is correct.")
+        return
+    
+    st.info(f"📂 Scanning directory: `{scan_directory}`")
+    
     if st.button("🔍 Run Security Scan", type="primary", use_container_width=True):
-        st.warning("⚠️ Feature coming soon! This will scan for:")
-        st.markdown("""
-        **Common Vulnerabilities:**
-        - SQL Injection vulnerabilities
-        - Cross-Site Scripting (XSS) risks
-        - Insecure authentication patterns
-        - Hardcoded secrets and credentials
-        - Unsafe file operations
-        - Weak cryptography usage
-        - Command injection risks
-        - Path traversal vulnerabilities
-        - Insecure deserialization
-        - Missing input validation
+        with st.spinner("Scanning codebase for security vulnerabilities..."):
+            results, error = analyzer.scan_directory(
+                directory=scan_directory,
+                severity_filter=severity_filter,
+                confidence_filter=confidence_filter,
+                categories=scan_categories if scan_categories else None,
+                exclude_patterns=DEFAULT_EXCLUDE_PATTERNS
+            )
+            
+            if error:
+                st.error(f"❌ Error: {error}")
+            else:
+                st.session_state.security_scan_results = results
+                st.success("✅ Security scan completed!")
+    
+    # Display results if available
+    if st.session_state.get('security_scan_results'):
+        results = st.session_state.security_scan_results
+        st.markdown("---")
+        st.markdown("## 📊 Security Scan Results")
         
-        **Report Format:**
-        - Severity classification
-        - Line-by-line location
-        - Remediation suggestions
-        - OWASP category mapping
-        """)
+        summary = results['summary']
+        
+        # Summary metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric(
+                label="🔴 High Severity",
+                value=summary['high_severity'],
+                help="Critical security issues that need immediate attention"
+            )
+        
+        with col2:
+            st.metric(
+                label="🟡 Medium Severity",
+                value=summary['medium_severity'],
+                help="Important security issues that should be addressed"
+            )
+        
+        with col3:
+            st.metric(
+                label="🟢 Low Severity",
+                value=summary['low_severity'],
+                help="Minor security issues or recommendations"
+            )
+        
+        with col4:
+            st.metric(
+                label="📄 Files with Issues",
+                value=summary['files_with_issues'],
+                help="Number of files containing security vulnerabilities"
+            )
+        
+        st.markdown("---")
+        
+        # Display vulnerabilities
+        if len(results['vulnerabilities']) == 0:
+            st.success("🎉 **No security vulnerabilities found!** Your code appears to be secure.")
+        else:
+            st.markdown(f"### Found {summary['total_issues']} Security Issues")
+            
+            # Filter tabs by severity
+            severity_tabs = st.tabs(["🔴 High", "🟡 Medium", "🟢 Low"])
+            
+            for severity_idx, severity in enumerate(["HIGH", "MEDIUM", "LOW"]):
+                with severity_tabs[severity_idx]:
+                    vulns_by_severity = [v for v in results['vulnerabilities'] if v['issue_severity'] == severity]
+                    
+                    if len(vulns_by_severity) == 0:
+                        st.info(f"No {severity.lower()} severity issues found.")
+                    else:
+                        st.write(f"Found {len(vulns_by_severity)} {severity.lower()} severity issue(s):")
+                        
+                        for idx, vuln in enumerate(vulns_by_severity, 1):
+                            emoji = analyzer.get_severity_emoji(vuln['issue_severity'])
+                            color = analyzer.get_severity_color(vuln['issue_severity'])
+                            
+                            with st.expander(f"{emoji} {vuln['test_name']}", expanded=False):
+                                st.markdown(f"**File:** `{vuln['file_path']}:{vuln['line_number']}`")
+                                st.markdown(f"**Confidence:** {analyzer.get_confidence_badge(vuln['issue_confidence'])}")
+                                st.markdown(f"**Issue:** {vuln['issue_text']}")
+                                
+                                if vuln['code']:
+                                    st.code(vuln['code'], language='python')
+                                
+                                if vuln['more_info']:
+                                    st.markdown(f"**More Info:** [{vuln['more_info']}]({vuln['more_info']})")
+        
+        # Download options
+        st.markdown("---")
+        st.markdown("### 📥 Download Report")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # JSON download
+            json_data = json.dumps(results, indent=2)
+            st.download_button(
+                label="📄 Download JSON Report",
+                data=json_data,
+                file_name=f"security_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json",
+                use_container_width=True
+            )
+        
+        with col2:
+            # HTML download
+            html_report = analyzer.generate_html_report(results)
+            st.download_button(
+                label="🌐 Download HTML Report",
+                data=html_report,
+                file_name=f"security_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                mime="text/html",
+                use_container_width=True
+            )
 
 def render_chat_tab():
     """Render the Chat with Code tab"""
