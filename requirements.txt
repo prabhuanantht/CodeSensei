@@ -12,3 +12,6 @@ pathspec>=0.11.0
 streamlit>=1.28.0
 streamlit-option-menu>=0.3.6
 
+# RAG Chatbot dependencies
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
