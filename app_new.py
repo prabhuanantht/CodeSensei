@@ -138,6 +138,8 @@ if 'console_output' not in st.session_state:
     st.session_state.console_output = []
 if 'current_step' not in st.session_state:
     st.session_state.current_step = None
+if 'tutorial_preview_chapter' not in st.session_state:
+    st.session_state.tutorial_preview_chapter = None
 
 # Code Intelligence state
 if 'complexity_analysis' not in st.session_state:
@@ -506,13 +508,39 @@ def render_tutorial_tab():
         if output_path.exists():
             md_files = sorted(output_path.glob("*.md"))
             
+            # Separate index.md and other chapters
+            index_file = None
+            chapter_files = []
+            
+            for f in md_files:
+                if f.name == "index.md":
+                    index_file = f
+                else:
+                    chapter_files.append(f)
+            
+            # Ensure index.md is first in the list for ordering
+            if index_file:
+                md_files_sorted = [index_file] + sorted(chapter_files)
+            else:
+                md_files_sorted = sorted(chapter_files)
+            
             if md_files:
                 st.markdown("### 📄 Generated Tutorial")
                 
-                # Preview section
+                # Preview section with navigation
+                # Set default selected chapter
+                default_index = 0
+                if st.session_state.tutorial_preview_chapter:
+                    try:
+                        default_index = [f.name for f in md_files_sorted].index(st.session_state.tutorial_preview_chapter)
+                    except ValueError:
+                        pass  # If chapter not found, use default
+                
                 selected_chapter = st.selectbox(
                     "Select Chapter to Preview",
-                    [f.name for f in md_files]
+                    options=[f.name for f in md_files_sorted],
+                    index=default_index,
+                    format_func=lambda x: "🏠 " + x.replace('.md', '').replace('_', ' ').title() if x == "index.md" else "📄 " + x.replace('.md', '').replace('_', ' ').title()
                 )
                 
                 if selected_chapter:
@@ -520,8 +548,85 @@ def render_tutorial_tab():
                     with open(chapter_file, 'r', encoding='utf-8') as f:
                         chapter_content = f.read()
                     
-                    with st.expander(f"Preview: {selected_chapter}", expanded=True):
-                        render_markdown_with_mermaid(chapter_content)
+                    # Add an anchor at the top for navigation
+                    chapter_title = selected_chapter.replace('.md', '').replace('_', ' ').title()
+                    
+                    # Track chapter changes
+                    if 'last_chapter' not in st.session_state:
+                        st.session_state.last_chapter = selected_chapter
+                    
+                    # If chapter changed, scroll to top using JavaScript
+                    if st.session_state.last_chapter != selected_chapter:
+                        st.session_state.last_chapter = selected_chapter
+                        # Scroll to the beginning - try multiple times with increasing delays
+                        st.components.v1.html("""
+                        <script>
+                            function scrollToTop() {
+                                try {
+                                    // Try scrolling the iframe content
+                                    const iframe = parent.document.querySelector('iframe[title*="streamlit"]');
+                                    if (iframe && iframe.contentWindow) {
+                                        iframe.contentWindow.scrollTo({top: 0, behavior: 'smooth'});
+                                    }
+                                    // Scroll the parent window
+                                    parent.scrollTo({top: 0, behavior: 'smooth'});
+                                    // Scroll current window
+                                    window.scrollTo({top: 0, behavior: 'smooth'});
+                                    // Try scrolling the iframe container
+                                    if (iframe) {
+                                        iframe.scrollIntoView({block: 'start', behavior: 'smooth'});
+                                    }
+                                } catch(e) {
+                                    // Fallback - immediate scroll
+                                    window.scrollTo(0, 0);
+                                    parent.scrollTo(0, 0);
+                                }
+                            }
+                            // Run multiple times with delays to ensure scroll completes
+                            scrollToTop();
+                            setTimeout(scrollToTop, 50);
+                            setTimeout(scrollToTop, 150);
+                            setTimeout(scrollToTop, 300);
+                            setTimeout(scrollToTop, 500);
+                        </script>
+                        """, height=0)
+                    
+                    # Display the chapter content with title
+                    st.markdown(f"### 📖 {chapter_title}")
+                    st.markdown("---")
+                    render_markdown_with_mermaid(chapter_content)
+                    
+                    # Navigation buttons
+                    st.markdown("---")
+                    current_index = [f.name for f in md_files_sorted].index(selected_chapter)
+                    
+                    nav_col1, nav_col2, nav_col3 = st.columns([1, 1, 1])
+                    
+                    with nav_col1:
+                        if current_index > 0:
+                            prev_chapter = md_files_sorted[current_index - 1].name
+                            if st.button("⬅ Previous Chapter", use_container_width=True, key=f"prev_{current_index}"):
+                                st.session_state.tutorial_preview_chapter = prev_chapter
+                                st.rerun()
+                        else:
+                            st.empty()  # Empty space when no previous button
+                    
+                    with nav_col2:
+                        # Chapter indicator (centered)
+                        st.markdown(f"""
+                        <div style="text-align: center;">
+                            <strong>Chapter {current_index + 1} of {len(md_files_sorted)}</strong>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with nav_col3:
+                        if current_index < len(md_files_sorted) - 1:
+                            next_chapter = md_files_sorted[current_index + 1].name
+                            if st.button("Next Chapter ➡", use_container_width=True, key=f"next_{current_index}"):
+                                st.session_state.tutorial_preview_chapter = next_chapter
+                                st.rerun()
+                        else:
+                            st.empty()  # Empty space when no next button
                 
                 # Download section
                 st.markdown("### 📥 Download Options")
@@ -544,10 +649,23 @@ def render_tutorial_tab():
                     )
                 
                 with col2:
-                    st.button(
-                        "📄 Download as PDF",
-                        use_container_width=True,
-                        help=".pdf"
+                    # PDF download (combined markdown)
+                    combined_md = io.StringIO()
+                    
+                    # Write all files in order (index first, then chapters)
+                    for file in md_files_sorted:
+                        with open(file, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            combined_md.write(content)
+                            combined_md.write("\n\n---\n\n")  # Page break separator
+                    
+                    combined_content = combined_md.getvalue()
+                    st.download_button(
+                        label="📄 Download as Combined Markdown",
+                        data=combined_content,
+                        file_name=f"tutorial_{Path(st.session_state.codebase_source).name}_combined.md",
+                        mime="text/markdown",
+                        use_container_width=True
                     )
         
         # Generate another tutorial
