@@ -1,281 +1,203 @@
-# 🎓 CodeSensei - Streamlit Frontend
+# 🎓 CodeSensei - AI-Powered Codebase Analysis Platform
 
-A beautiful, modern web interface for the AI Codebase Tutorial Generator. Transform any codebase into easy-to-follow tutorials with just a few clicks!
+> **Transform any codebase into interactive tutorials and analyze code quality with AI-powered insights**
 
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
 
-## 🌟 Features
+## 🌟 Overview
 
-- **🎨 Modern UI** - Clean, intuitive interface built with Streamlit
-- **📊 Real-time Progress** - Watch your tutorial being generated step-by-step
-- **📝 Live File Display** - See generated files appear as they're created
-- **🔍 Live Preview** - Preview generated chapters instantly
-- **📈 Mermaid Diagrams** - Interactive diagrams rendered beautifully
-- **💾 Easy Export** - Download tutorials as ZIP files
-- **🌍 Multi-language** - Generate tutorials in any language
-- **⚙️ Flexible Configuration** - Full control over file patterns and settings
-- **📊 Progress Tracking** - Visual feedback for each generation step
-- **🔄 Caching Support** - Speed up re-runs with intelligent caching
+CodeSensei is an intelligent web-based platform that helps developers understand and document complex codebases. Using advanced AI and machine learning techniques, it automatically generates interactive tutorials, detects security vulnerabilities, analyzes code quality, and provides intelligent Q&A capabilities.
+
+**Perfect for:** New developers onboarding to a codebase, code reviews, documentation generation, and security audits.
+
+## ✨ Key Features
+
+### 📚 AI-Powered Tutorial Generation
+- **Automated Documentation**: Generate interactive Markdown tutorials with Mermaid diagrams in under 10 minutes
+- **Smart Analysis**: AI identifies core abstractions and architectural patterns
+- **Multi-language Support**: Process Python, JavaScript, TypeScript, Java, Go, and more
+- **Beginner-Friendly**: Explanations with code examples and visual diagrams
+
+### 🧠 Code Intelligence Analysis
+- **Complexity Analysis**: Detect cyclomatic complexity hotspots using Radon
+- **Dead Code Detection**: Identify orphan functions and unused code via NetworkX call graphs
+- **Code Similarity Clustering**: Find duplicate patterns using CodeBERT embeddings and K-means clustering
+- **Pattern Mining**: Extract common coding patterns using AST analysis
+
+### 🔒 Security Scanning
+- **Vulnerability Detection**: Scan for SQL injection, XSS, insecure authentication, and 15+ vulnerability types using Bandit
+- **Detailed Reports**: Get exact file paths and line numbers with HTML/JSON export
+- **Severity Classification**: High, Medium, Low severity categorization
+
+### 💬 RAG-Powered Code Chatbot
+- **Semantic Search**: Function-level code chunking with intelligent retrieval
+- **Context-Aware Q&A**: Ask questions about codebase architecture and implementation
+- **Source Tracking**: Get exact file and line references for every answer
+- **Technologies**: ChromaDB (HNSW + cosine similarity) with all-MiniLM-L6-v2 embeddings
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - Python 3.8 or higher
-- An API key for one of the supported LLM providers:
-  - Google Gemini (recommended)
-  - OpenAI
-  - Anthropic Claude
-  - Ollama (local)
-  - Any OpenAI-compatible API
+- Google Gemini API Key (or compatible LLM provider)
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/The-Pocket/PocketFlow-Tutorial-Codebase-Knowledge
-   cd PocketFlow-Tutorial-Codebase-Knowledge
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/CodeSensei_streamlit.git
+cd CodeSensei_streamlit
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+# Install dependencies
+pip install -r requirements.txt
 
-3. **Set up your API key**
-   
-   Create a `.env` file in the root directory:
-   
-   ```bash
-   # For Google Gemini (Recommended)
-   GEMINI_API_KEY=your_gemini_api_key_here
-   
-   # OR for other providers
-   LLM_PROVIDER=XAI  # or OLLAMA, OPENAI, etc.
-   XAI_MODEL=grok-beta
-   XAI_BASE_URL=https://api.x.ai/v1
-   XAI_API_KEY=your_api_key_here
-   
-   # Optional: GitHub token for private repos
-   GITHUB_TOKEN=your_github_token_here
-   ```
-
-4. **Run the Streamlit app**
-   ```bash
-   streamlit run app.py
-   ```
-
-5. **Open your browser**
-   
-   The app will automatically open at `http://localhost:8501`
-
-## 📖 How to Use
-
-### Step 1: Home Page
-- Learn about CodeSensei's features
-- See example tutorials
-- Click "Get Started"
-
-### Step 2: Configure Your Tutorial
-1. **Choose Source**
-   - GitHub Repository (paste URL)
-   - Local Directory (provide path)
-
-2. **Project Settings**
-   - Set project name (optional)
-   - Choose tutorial language
-   - Set max abstractions (5-20)
-   - Enable/disable caching
-
-3. **File Patterns (Advanced)**
-   - Customize include patterns
-   - Customize exclude patterns
-   - Set maximum file size
-
-4. **Output Settings**
-   - Choose output directory
-
-### Step 3: Generate
-- Watch real-time progress
-- See which step is currently running
-- View live logs
-- Wait for completion (typically 5-15 minutes)
-
-### Step 4: View Results
-- See tutorial statistics
-- Preview index page
-- Browse individual chapters
-- Download as ZIP file
-
-## 🎯 Configuration Options
-
-### Source Options
-
-**GitHub Repository**
-```
-Repository URL: https://github.com/username/repo
-GitHub Token: (optional, for private repos)
+# Set up API key
+cp env_example.txt .env
+# Edit .env and add your GEMINI_API_KEY
 ```
 
-**Local Directory**
-```
-Directory Path: /path/to/your/codebase
+### Run the Application
+
+```bash
+# Using the run script
+./run_app.sh  # Unix/Mac
+# or
+run_app.bat   # Windows
+
+# Or directly with Streamlit
+streamlit run app_new.py
 ```
 
-### Advanced Settings
+Open your browser at `http://localhost:8501`
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Project Name | Auto-detected | Custom name for your tutorial |
-| Language | English | Tutorial language (English, Spanish, etc.) |
-| Max Abstractions | 10 | Number of core concepts to identify (5-20) |
-| Enable Caching | Yes | Cache LLM responses for faster re-runs |
-| Max File Size | 100KB | Maximum file size to analyze |
+## 📖 Usage Guide
 
-### File Patterns
+### 1. Tutorial Generation
+1. Navigate to the Tutorial Generation tab
+2. Enter a GitHub repository URL or local directory path
+3. Configure settings (language, max abstractions)
+4. Click "Generate Tutorial"
+5. Wait for completion (typically 5-15 minutes)
+6. Download the generated tutorial as a ZIP file
 
-**Default Include Patterns:**
-```
-*.py, *.js, *.jsx, *.ts, *.tsx, *.go, *.java, *.c, *.cpp, *.h, *.md, *.rst
-```
+### 2. Code Intelligence Analysis
+1. Load your codebase (same as tutorial generation)
+2. Navigate to Code Intelligence tab
+3. Run individual analyses:
+   - **Complexity Analysis**: View cyclomatic complexity metrics
+   - **Orphan Detection**: Find dead code
+   - **Pattern Mining**: Discover common patterns
+4. Review detailed results with file locations
 
-**Default Exclude Patterns:**
-```
-*test*, *tests/*, *node_modules/*, *venv/*, *build/*, *dist/*, .git/*
-```
+### 3. Security Scanning
+1. In the Security tab, select severity and confidence filters
+2. Click "Run Security Scan"
+3. Review vulnerabilities organized by severity
+4. Download HTML/JSON reports
 
-## 🔧 Troubleshooting
-
-### API Key Not Found
-```
-Error: No API Key Found
-```
-**Solution:** Set your API key in the `.env` file or environment variables
-
-### Rate Limit Errors
-```
-Error: Rate limit exceeded
-```
-**Solution:** 
-- Add a GitHub token for repository analysis
-- Use caching to reduce API calls
-- Wait a few minutes and try again
-
-### Memory Issues
-```
-Error: Out of memory
-```
-**Solution:**
-- Reduce max abstractions
-- Add more exclude patterns
-- Reduce max file size
-
-### Generation Stuck
-**Solution:**
-- Check the progress log for errors
-- Verify API key is valid
-- Try disabling cache and regenerating
+### 4. Chat with Code
+1. In the Chat tab, click "Index Codebase for Chat"
+2. Wait for indexing to complete
+3. Ask questions about the codebase
+4. Get AI-powered answers with source citations
 
 ## 🏗️ Architecture
 
 ```
-CodeSensei Streamlit App
-│
-├── app.py                 # Main Streamlit application
-├── requirements.txt       # Python dependencies
-├── .env                   # API keys and configuration
-│
-└── PocketFlow-Tutorial-Codebase-Knowledge/
-    ├── flow.py           # Tutorial generation workflow
-    ├── nodes.py          # Individual processing nodes
-    ├── main.py           # CLI interface (legacy)
-    └── utils/
-        ├── call_llm.py   # LLM API integration
-        ├── crawl_github_files.py
-        └── crawl_local_files.py
+CodeSensei Platform
+├── Frontend (Streamlit)
+│   ├── Tutorial Generation UI
+│   ├── Intelligence Analysis UI
+│   ├── Security Scanner UI
+│   └── RAG Chatbot UI
+├── Core Analyzers
+│   ├── CodeIntelligenceAnalyzer (CodeBERT, NetworkX, Radon)
+│   ├── SecurityAnalyzer (Bandit)
+│   └── CodebaseRAG (ChromaDB, sentence-transformers)
+└── Backend Integration
+    └── PocketFlow Workflow Engine
 ```
 
-## 🎨 UI Components
+## 🛠️ Technology Stack
 
-### Pages
+### Core Technologies
+- **Streamlit**: Modern web framework for Python apps
+- **Python 3.8+**: Main programming language
+- **Google Gemini**: LLM for content generation and Q&A
 
-1. **Home** - Introduction and features
-2. **Configure** - Setup tutorial generation
-3. **Generate** - Real-time progress tracking
-4. **Results** - Preview and download
+### AI/ML Libraries
+- **CodeBERT** (microsoft/codebert-base): Code embeddings for similarity analysis
+- **Transformers**: Hugging Face transformers library
+- **NetworkX**: Graph analysis for call graphs
+- **Radon**: Code complexity metrics
+- **Bandit**: Security vulnerability scanning
+- **scikit-learn**: Clustering and similarity analysis
 
-### Key Features
+### Vector Database
+- **ChromaDB**: HNSW indexing with cosine similarity
+- **sentence-transformers**: all-MiniLM-L6-v2 embeddings
 
-- **Responsive Design** - Works on desktop and tablet
-- **Progress Visualization** - Step-by-step progress indicators
-- **Live Logging** - Real-time feedback during generation
-- **Interactive Preview** - Browse chapters before downloading
-- **Statistics Dashboard** - View tutorial metrics
+### Additional Tools
+- **ChromaDB**: Vector database for semantic search
+- **Mermaid**: Diagram generation
+- **Pandas**: Data manipulation and analysis
 
-## 🌐 Multi-Language Support
+## 📊 Features Breakdown
 
-CodeSensei can generate tutorials in any language:
+| Module | Functionality | Technologies |
+|--------|---------------|--------------|
+| **Tutorial Generation** | AI-powered documentation with diagrams | Gemini, Mermaid, AST parsing |
+| **Complexity Analysis** | Cyclomatic complexity & maintainability | Radon, NetworkX |
+| **Orphan Detection** | Dead code identification | NetworkX, AST |
+| **Pattern Mining** | Code pattern extraction | AST, NetworkX |
+| **Code Similarity** | Duplicate code detection | CodeBERT, K-means, scikit-learn |
+| **Security Scanning** | Vulnerability detection | Bandit, AST |
+| **RAG Chatbot** | Semantic Q&A | ChromaDB, sentence-transformers, Gemini |
 
-- English (default)
-- Spanish (Español)
-- French (Français)
-- German (Deutsch)
-- Chinese (中文)
-- Japanese (日本語)
-- Hindi (हिन्दी)
-- Portuguese (Português)
-- And more!
-
-The AI will translate:
-- All explanations and text
-- Chapter names and descriptions
-- Code comments (where appropriate)
-- Diagram labels
-
-## 📊 Example Output
-
-After generation, you'll get:
+## 📁 Project Structure
 
 ```
-output/
-└── YourProject/
-    ├── index.md              # Main tutorial page
-    ├── 01_core_concept.md    # Chapter 1
-    ├── 02_another_concept.md # Chapter 2
-    └── ...                   # More chapters
+CodeSensei_streamlit/
+├── app_new.py              # Main Streamlit application
+├── intelligence_analyzer.py # Code intelligence analysis
+├── security_analyzer.py     # Security vulnerability scanning
+├── rag_chatbot.py          # RAG chatbot implementation
+├── requirements.txt        # Python dependencies
+├── .env                    # API keys (not in repo)
+├── output/                 # Generated tutorials
+├── cache/                  # Cached repositories
+└── logs/                   # Application logs
 ```
-
-Each tutorial includes:
-- Project overview
-- Mermaid relationship diagram
-- Detailed chapters with:
-  - Explanations
-  - Code examples
-  - Sequence diagrams
-  - Cross-references
-  - Analogies for beginners
 
 ## 🤝 Contributing
 
-Contributions are welcome! This is built on top of [PocketFlow](https://github.com/The-Pocket/PocketFlow).
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## 📝 License
 
-MIT License - See LICENSE file for details
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Credits
+## 👥 Developers
+
+- **Ananth Prabhu T**
+- **Shreedhar A Sherlekar**
+- **Chandan K Vasista**
+
+## 🙏 Acknowledgments
 
 - Built with [Streamlit](https://streamlit.io/)
-- Powered by [PocketFlow](https://github.com/The-Pocket/PocketFlow)
-- Original CLI tool: [Tutorial-Codebase-Knowledge](https://github.com/The-Pocket/PocketFlow-Tutorial-Codebase-Knowledge)
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/The-Pocket/PocketFlow-Tutorial-Codebase-Knowledge/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/The-Pocket/PocketFlow-Tutorial-Codebase-Knowledge/discussions)
-- **Documentation**: [Official Docs](https://the-pocket.github.io/PocketFlow-Tutorial-Codebase-Knowledge/)
+- Powered by [Google Gemini](https://deepmind.google/technologies/gemini/)
+- Security scanning by [Bandit](https://bandit.readthedocs.io/)
+- Inspired by [PocketFlow](https://github.com/The-Pocket/PocketFlow)
 
 ---
 
-Made with ❤️ by the PocketFlow team
-
+**Made with ❤️ for the developer community**

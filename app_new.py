@@ -43,6 +43,15 @@ except ImportError as e:
     SECURITY_AVAILABLE = False
     SECURITY_IMPORT_ERROR = str(e)
 
+# Try to import Intelligence Analyzer - optional feature
+try:
+    from intelligence_analyzer import CodeIntelligenceAnalyzer
+    INTELLIGENCE_AVAILABLE = True
+    INTELLIGENCE_IMPORT_ERROR = None
+except ImportError as e:
+    INTELLIGENCE_AVAILABLE = False
+    INTELLIGENCE_IMPORT_ERROR = str(e)
+
 # Page config
 st.set_page_config(
     page_title="CodeSensei",
@@ -180,6 +189,15 @@ if 'code_similarity' not in st.session_state:
     st.session_state.code_similarity = None
 if 'code_patterns' not in st.session_state:
     st.session_state.code_patterns = None
+# Results from analysis
+if 'complexity_results' not in st.session_state:
+    st.session_state.complexity_results = None
+if 'orphan_results' not in st.session_state:
+    st.session_state.orphan_results = None
+if 'similarity_results' not in st.session_state:
+    st.session_state.similarity_results = None
+if 'pattern_results' not in st.session_state:
+    st.session_state.pattern_results = None
 
 # Code Security state
 if 'vulnerability_scan' not in st.session_state:
@@ -717,9 +735,52 @@ def render_tutorial_tab():
 
 def render_intelligence_tab():
     """Render the Code Intelligence tab"""
+    
+    if not INTELLIGENCE_AVAILABLE:
+        st.error("🧠 Intelligence analyzer not available")
+        st.code("Please install: pip install radon networkx", language="bash")
+        return
+    
     st.markdown("## 🧠 Code Intelligence")
     st.markdown("Deep analysis of your codebase structure and quality.")
     st.markdown("---")
+    
+    # Get codebase source
+    if not st.session_state.get('codebase_source'):
+        st.warning("⚠️ Please enter a codebase source first")
+        return
+    
+    # Get files
+    files_data = []
+    if st.session_state.codebase_type == "github":
+        project_name = st.session_state.codebase_source.split("/")[-1].replace(".git", "")
+        cache_dir = Path("./cache") / project_name
+        if cache_dir.exists():
+            for py_file in cache_dir.rglob("*.py"):
+                if any(skip in str(py_file) for skip in ['test', 'example', '__pycache__']):
+                    continue
+                try:
+                    with open(py_file, 'r', encoding='utf-8') as f:
+                        files_data.append((str(py_file.relative_to(cache_dir)), f.read()))
+                except:
+                    pass
+    else:
+        source_path = Path(st.session_state.codebase_source)
+        if source_path.exists():
+            for py_file in source_path.rglob("*.py"):
+                if any(skip in str(py_file) for skip in ['test', 'example', '__pycache__']):
+                    continue
+                try:
+                    with open(py_file, 'r', encoding='utf-8') as f:
+                        files_data.append((str(py_file.relative_to(source_path)), f.read()))
+                except:
+                    pass
+    
+    if not files_data:
+        st.error("❌ No Python files found")
+        return
+    
+    st.info(f"📂 Found {len(files_data)} files")
     
     intel_tab1, intel_tab2, intel_tab3, intel_tab4 = st.tabs([
         "📊 Complexity & Maintainability",
@@ -728,61 +789,194 @@ def render_intelligence_tab():
         "🎯 Pattern Mining"
     ])
     
+    analyzer = CodeIntelligenceAnalyzer()
+    
     with intel_tab1:
         st.markdown("### Code Complexity & Maintainability Analysis")
         st.info("Analyze cyclomatic complexity, maintainability index, and code metrics")
         
-        if st.button("▶ Run Complexity Analysis", type="primary"):
-            st.warning("⚠️ Feature coming soon! This will analyze:")
-            st.markdown("""
-            - Cyclomatic complexity per function/method
-            - Maintainability index
-            - Lines of code metrics
-            - Code duplication percentage
-            - Halstead complexity measures
-            """)
+        if st.button("▶ Run Complexity Analysis", type="primary", use_container_width=True):
+            with st.spinner("Analyzing complexity..."):
+                results = analyzer.analyze_codebase_from_files(files_data, ['complexity'])
+                if 'complexity' in results and results['complexity']:
+                    if 'error' in results['complexity']:
+                        st.error(f"❌ {results['complexity']['error']}")
+                    else:
+                        st.session_state.complexity_results = results['complexity']
+                        st.success("✅ Complete!")
+        
+        if st.session_state.get('complexity_results'):
+            c = st.session_state.complexity_results
+            st.markdown("### Summary")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1: st.metric("Functions", c['summary']['total_functions'])
+            with col2: st.metric("Avg CC", c['summary']['avg_complexity'])
+            with col3: st.metric("Complex", c['summary']['complex_functions'])
+            with col4: st.metric("Modules", c['summary']['total_modules'])
+            st.markdown("### Most Complex Functions")
+            for func in sorted(c['function_metrics'], key=lambda x: x['cyclomatic_complexity'], reverse=True)[:15]:
+                with st.expander(f"{func['function']} (CC: {func['cyclomatic_complexity']})"):
+                    st.text(f"File: {func['file']}")
+                    st.text(f"Lines: {func['line_start']}-{func['line_end']}")
     
     with intel_tab2:
         st.markdown("### Orphan Code Detection")
         st.info("Find unused functions, classes, and modules that can be safely removed")
         
-        if st.button("▶ Detect Orphan Code", type="primary"):
-            st.warning("⚠️ Feature coming soon! This will identify:")
-            st.markdown("""
-            - Unused functions and methods
-            - Unreferenced classes
-            - Dead code paths
-            - Unused imports
-            - Orphaned modules
-            """)
+        if st.button("▶ Detect Orphan Code", type="primary", use_container_width=True):
+            with st.spinner("Detecting orphan code..."):
+                results = analyzer.analyze_codebase_from_files(files_data, ['orphan'])
+                if 'orphan' in results and results['orphan']:
+                    if 'error' in results['orphan']:
+                        st.error(f"❌ {results['orphan']['error']}")
+                    else:
+                        st.session_state.orphan_results = results['orphan']
+                        st.success("✅ Complete!")
+        
+        if st.session_state.get('orphan_results'):
+            o = st.session_state.orphan_results
+            st.markdown("### Summary")
+            col1, col2, col3 = st.columns(3)
+            with col1: st.metric("Total Definitions", o['summary']['total_definitions'])
+            with col2: st.metric("Orphan Code", o['summary']['total_orphans'])
+            with col3: st.metric("Orphan %", f"{o['summary']['orphan_percentage']}%")
+            
+            if o['orphan_functions']:
+                st.markdown("### Orphan Functions")
+                for func in o['orphan_functions'][:30]:
+                    st.text(f"- {func['name']} in {func['file']}:{func['line']}")
+            
+            if o['orphan_classes']:
+                st.markdown("### Orphan Classes")
+                for cls in o['orphan_classes'][:20]:
+                    st.text(f"- {cls['name']} in {cls['file']}:{cls['line']}")
     
     with intel_tab3:
         st.markdown("### Code Similarity Clustering")
-        st.info("Identify duplicate or similar code patterns for potential refactoring")
+        st.info("Identify similar functions using neural embeddings (CodeBERT)")
         
-        if st.button("▶ Analyze Code Similarity", type="primary"):
-            st.warning("⚠️ Feature coming soon! This will show:")
-            st.markdown("""
-            - Similar code blocks
-            - Duplicate functions
-            - Near-duplicate code segments
-            - Refactoring opportunities
-            - Clone detection results
-            """)
+        if st.button("▶ Analyze Code Similarity", type="primary", use_container_width=True):
+            with st.spinner("🔮 Analyzing code similarity with neural embeddings... (this may take a while)"):
+                results = analyzer.analyze_codebase_from_files(files_data, ['similarity'])
+                if 'similarity' in results and results['similarity']:
+                    if 'error' in results['similarity']:
+                        st.error(f"❌ {results['similarity']['error']}")
+                        st.info(results['similarity'].get('message', ''))
+                    else:
+                        st.session_state.similarity_results = results['similarity']
+                        st.success("✅ Complete!")
+        
+        if st.session_state.get('similarity_results'):
+            s = st.session_state.similarity_results
+            st.markdown("### Summary")
+            col1, col2, col3 = st.columns(3)
+            with col1: st.metric("Total Functions", s['total_functions'])
+            with col2: st.metric("Clusters", s['num_clusters'])
+            with col3: st.metric("Similar Pairs", s['stats']['similar_pairs_count'])
+            
+            if s.get('similar_pairs'):
+                st.markdown("### Similar Function Pairs")
+                st.info(f"Found {len(s['similar_pairs'])} similar function pairs (similarity > 60%)")
+                
+                for pair in s['similar_pairs']:
+                    with st.expander(f"{pair['func1'].split('::')[-1]} ↔ {pair['func2'].split('::')[-1]} (Similarity: {pair['similarity']})"):
+                        st.markdown(f"**Files:** {pair['func1'].split('::')[0]} ↔ {pair['func2'].split('::')[0]}")
+                        col_left, col_right = st.columns(2)
+                        with col_left:
+                            st.markdown("**Function 1:**")
+                            st.code(pair['code1'], language='python')
+                        with col_right:
+                            st.markdown("**Function 2:**")
+                            st.code(pair['code2'], language='python')
+            
+            if s.get('clusters'):
+                st.markdown("### Code Clusters")
+                st.info(f"Functions grouped into {len(s['clusters'])} clusters based on semantic similarity")
+                
+                for cluster_id, functions in list(s['clusters'].items())[:10]:
+                    with st.expander(f"Cluster {cluster_id} ({len(functions)} functions)"):
+                        for func in functions[:10]:
+                            st.text(f"• {func}")
+                        if len(functions) > 10:
+                            st.caption(f"... and {len(functions) - 10} more")
     
     with intel_tab4:
         st.markdown("### Code Pattern Mining")
-        st.info("Discover design patterns and anti-patterns in your codebase")
+        st.info("Discover common patterns, anti-patterns, and architectural insights")
         
-        if st.button("▶ Mine Code Patterns", type="primary"):
-            st.warning("⚠️ Feature coming soon! This will detect:")
-            st.markdown("""
-            - Design patterns (Singleton, Factory, Observer, etc.)
-            - Anti-patterns (God Object, Spaghetti Code, etc.)
-            - Common coding idioms
-            - Architecture patterns
-            - Best practice violations
-            """)
+        if st.button("▶ Mine Code Patterns", type="primary", use_container_width=True):
+            with st.spinner("Mining patterns and detecting anti-patterns..."):
+                results = analyzer.analyze_codebase_from_files(files_data, ['patterns'])
+                if 'patterns' in results and results['patterns']:
+                    if 'error' in results['patterns']:
+                        st.error(f"❌ {results['patterns']['error']}")
+                    else:
+                        st.session_state.pattern_results = results['patterns']
+                        st.success("✅ Complete!")
+        
+        if st.session_state.get('pattern_results'):
+            p = st.session_state.pattern_results
+            
+            # Overview Stats
+            st.markdown("### 📊 Codebase Overview")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1: st.metric("Total Functions", p['total_functions'])
+            with col2: st.metric("Total Classes", p.get('total_classes', 0))
+            with col3: st.metric("Meaningful Patterns", len(p['common_patterns']))
+            with col4: st.metric("Rare Patterns", p.get('rare_patterns', 0))
+            
+            # Class Statistics
+            if p.get('class_stats'):
+                st.markdown("### 📦 Class Statistics")
+                col1, col2 = st.columns(2)
+                with col1: st.metric("Avg Methods/Class", f"{p['class_stats']['avg_methods']:.2f}")
+                with col2: st.metric("Classes with __init__", p['class_stats']['with_init'])
+            
+            # Top Patterns by Classification
+            if p.get('common_patterns'):
+                st.markdown("### 🎯 Top Architectural Patterns")
+                pattern_types = {}
+                for pattern in p['common_patterns']:
+                    classification = pattern.get('classification', 'Standard Logic')
+                    pattern_types[classification] = pattern_types.get(classification, 0) + pattern['count']
+                
+                cols = st.columns(min(3, len(pattern_types)))
+                for i, (ptype, count) in enumerate(sorted(pattern_types.items(), key=lambda x: x[1], reverse=True)[:3]):
+                    with cols[i % len(cols)]:
+                        st.metric(ptype, count)
+            
+            # Common Patterns
+            st.markdown("### 📋 Top Common Patterns")
+            for i, pattern in enumerate(p['common_patterns'][:10], 1):
+                pattern_str = ' → '.join(pattern['pattern'][:4]) if pattern['pattern'] else "Empty"
+                classification = pattern.get('classification', 'Standard Logic')
+                with st.expander(f"Pattern {i}: {pattern_str} ({pattern['count']} occurrences) [{classification}]"):
+                    st.markdown(f"**Classification:** {classification}")
+                    st.markdown(f"**Frequency:** {pattern['count']} times ({pattern['percentage']}%)")
+                    st.markdown(f"**Full Pattern:** {' → '.join(pattern['pattern'])}")
+            
+            # Anti-Patterns
+            if p.get('anti_patterns'):
+                st.markdown("### ⚠️ Code Quality Concerns")
+                severity_counts = {}
+                for ap in p['anti_patterns']:
+                    severity = ap.get('severity', 'MEDIUM')
+                    severity_counts[severity] = severity_counts.get(severity, 0) + 1
+                
+                col1, col2, col3 = st.columns(3)
+                with col1: st.metric("🔴 High Severity", severity_counts.get('HIGH', 0))
+                with col2: st.metric("🟡 Medium Severity", severity_counts.get('MEDIUM', 0))
+                with col3: st.metric("🟢 Low Severity", severity_counts.get('LOW', 0))
+                
+                st.markdown("#### Top Anti-Pattern Examples")
+                for ap in p['anti_patterns'][:15]:
+                    severity_emoji = {'HIGH': '🔴', 'MEDIUM': '🟡', 'LOW': '🟢'}.get(ap['severity'], '⚪')
+                    with st.expander(f"{severity_emoji} {ap['function']} - {ap['type']} ({ap['file']}:{ap['line']})"):
+                        st.markdown(f"**Function:** `{ap['function']}`")
+                        st.markdown(f"**File:** `{ap['file']}`")
+                        st.markdown(f"**Line:** {ap['line']}")
+                        st.markdown(f"**Issue:** {ap['details']}")
+                        st.markdown(f"**Severity:** {ap['severity']}")
 
 def render_security_tab():
     """Render the Code Security tab"""
@@ -994,6 +1188,25 @@ def render_security_tab():
         else:
             st.markdown(f"### Found {summary['total_issues']} Security Issues")
             
+            # Quick table of all issues with locations
+            with st.expander("🧭 Issues by File and Line", expanded=False):
+                import pandas as _pd
+                _rows = [
+                    {
+                        'Severity': v['issue_severity'],
+                        'File': v.get('relative_path') or v['file_path'],
+                        'Line': v['line_number'],
+                        'Rule': v['test_name'],
+                        'Message': v['issue_text']
+                    }
+                    for v in results['vulnerabilities']
+                ]
+                if _rows:
+                    _df = _pd.DataFrame(_rows)
+                    st.dataframe(_df, use_container_width=True, hide_index=True)
+                else:
+                    st.info("No issues to display.")
+            
             # Filter tabs by severity
             severity_tabs = st.tabs(["🔴 High", "🟡 Medium", "🟢 Low"])
             
@@ -1011,7 +1224,8 @@ def render_security_tab():
                             color = analyzer.get_severity_color(vuln['issue_severity'])
                             
                             with st.expander(f"{emoji} {vuln['test_name']}", expanded=False):
-                                st.markdown(f"**File:** `{vuln['file_path']}:{vuln['line_number']}`")
+                                file_disp = vuln.get('relative_path') or vuln['file_path']
+                                st.markdown(f"**File:** `{file_disp}:{vuln['line_number']}`")
                                 st.markdown(f"**Confidence:** {analyzer.get_confidence_badge(vuln['issue_confidence'])}")
                                 st.markdown(f"**Issue:** {vuln['issue_text']}")
                                 
@@ -1382,6 +1596,13 @@ def main():
             else:
                 st.info("ⓘ No GitHub Token")
                 st.caption("Set GITHUB_TOKEN for private repos")
+        
+        # Developer Team
+        st.markdown("---")
+        st.markdown("**Developer Team**")
+        st.caption("Ananth Prabhu T")
+        st.caption("Shreedhar A Sherlekar")
+        st.caption("Chandan K Vasista")
     
     # Main content
     if not st.session_state.codebase_loaded:

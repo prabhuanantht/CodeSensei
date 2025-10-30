@@ -192,6 +192,11 @@ After installation, refresh this page.
         
         for file_result in report.get('results', []):
             file_path = file_result.get('filename', 'unknown')
+            # Prefer relative path for readability when possible
+            try:
+                relative_path = os.path.relpath(file_path, directory)
+            except Exception:
+                relative_path = file_path
             
             # Count unique files with issues
             if file_path not in files_with_issues:
@@ -200,6 +205,7 @@ After installation, refresh this page.
             # Create vulnerability entry
             vulnerability = {
                 'file_path': file_path,
+                'relative_path': relative_path,
                 'line_number': file_result.get('line_number', 0),
                 'issue_severity': file_result.get('issue_severity', 'UNKNOWN'),
                 'issue_confidence': file_result.get('issue_confidence', 'UNKNOWN'),

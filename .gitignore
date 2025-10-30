@@ -63,8 +63,22 @@ site/
 # Temporary files
 *.tmp
 *.bak
+*.bak2
 *.swp
 temp/
 tmp/
 
 cache/
+models/
+*.ckpt
+*.pth
+*.pt
+
+# Old dev files
+codecomplexityandmaintainablity.py
+codepatternmining.py
+codesimilarityclustering*.py
+deadororphancodedetection.py
+
+# Empty files or artifacts
+=*
