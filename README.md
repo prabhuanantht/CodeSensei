@@ -67,7 +67,7 @@ cp env_example.txt .env
 run_app.bat   # Windows
 
 # Or directly with Streamlit
-streamlit run app_new.py
+streamlit run app.py
 ```
 
 Open your browser at `http://localhost:8501`
@@ -190,14 +190,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **Ananth Prabhu T**
 - **Shreedhar A Sherlekar**
 - **Chandan K Vasista**
-
-## 🙏 Acknowledgments
-
-- Built with [Streamlit](https://streamlit.io/)
-- Powered by [Google Gemini](https://deepmind.google/technologies/gemini/)
-- Security scanning by [Bandit](https://bandit.readthedocs.io/)
-- Inspired by [PocketFlow](https://github.com/The-Pocket/PocketFlow)
-
----
 
 **Made with ❤️ for the developer community**
