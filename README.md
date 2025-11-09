@@ -47,7 +47,7 @@ CodeSensei is an intelligent web-based platform that helps developers understand
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/CodeSensei_streamlit.git
+git clone https://github.com/prabhuanantht/CodeSensei_streamlit.git
 cd CodeSensei_streamlit
 
 # Install dependencies
