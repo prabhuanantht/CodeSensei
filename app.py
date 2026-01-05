@@ -544,7 +544,7 @@ def render_markdown_with_mermaid(markdown_content):
                 </div>
                 <script type="module">
                     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-                    mermaid.initialize({{ startOnLoad: true, theme: 'dark' }});
+                    mermaid.initialize({{ startOnLoad: true, theme: 'light' }});
                 </script>
                 """
                 components.html(mermaid_html, height=400, scrolling=True)
