@@ -1,5 +1,11 @@
 import streamlit as st
 import os
+
+# Fix for macOS OpenMP runtime conflict
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+# Fix for Tokenizers parallelism deadlock
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 import sys
 from pathlib import Path
 import time

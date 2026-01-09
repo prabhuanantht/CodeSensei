@@ -228,12 +228,29 @@ class CodebaseRAG:
         # Initialize ChromaDB
         self.chroma_client = chromadb.Client()
 
-        # Use sentence transformers for embeddings (fast and accurate)
-        self.embedding_function = (
-            embedding_functions.SentenceTransformerEmbeddingFunction(
-                model_name="all-MiniLM-L6-v2"
-            )
-        )
+        # Use Gemini for embeddings (Cloud-based, no local torch dependency)
+        class GeminiEmbeddingFunction(embedding_functions.EmbeddingFunction):
+            def __init__(self, client):
+                self.client = client
+                
+            def __call__(self, input: List[str]) -> List[List[float]]:
+                try:
+                    # Batch embedding generation
+                    response = self.client.models.embed_content(
+                        model="models/text-embedding-004",
+                        contents=input
+                    )
+                    # Handle both single and batch responses
+                    if hasattr(response, 'embeddings'):
+                         # Extract embeddings from response objects
+                        return [e.values for e in response.embeddings]
+                    return []
+                except Exception as e:
+                    print(f"Embedding error: {e}")
+                    # Return zero vectors as fallback to prevent crash
+                    return [[0.0] * 768 for _ in input]
+
+        self.embedding_function = GeminiEmbeddingFunction(self.client)
 
         self.collection = None
         self.chunker = CodeChunker()
